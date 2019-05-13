@@ -1,0 +1,14 @@
+server {
+  listen 80;
+  server_name {{ vhost2.domain }} www.{{ vhost2.domain }};
+
+  root {{ vhost2.dest }};
+  charset utf-8;
+
+  access_log /var/log/nginx/test1.local-access.log main;
+  error_log /var/log/nginx/test1.local-error.log error;
+
+  index index.html index.htm index.php;
+
+  include /etc/nginx/templates/apache24.conf;
+}

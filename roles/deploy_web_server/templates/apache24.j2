@@ -1,0 +1,18 @@
+location / {
+  proxy_pass http://apache24;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $remote_addr;
+  proxy_connect_timeout 120;
+  proxy_send_timeout 120;
+  proxy_read_timeout 180;
+}
+location ~* \.(gif|jpeg|jpg|txt|png|tif|tiff|ico|jng|bmp|doc|pdf|rtf|xls|ppt|rar|rpm|swf|zip|bin|exe|dll|deb|cur)$ {
+  expires 3d;
+}
+location ~* \.(css|js)$ {
+  expires 180m;
+}
+location ~ /\.ht {
+  deny all;
+}

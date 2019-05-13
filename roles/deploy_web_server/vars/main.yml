@@ -1,2 +1,11 @@
 ---
 # vars file for deploy_web_server
+listen_port: 8080
+vhost1:
+   iphost: 192.168.13.1
+   dest: /var/www/html/test1.local
+   domain: test1.local
+vhost2:
+   iphost: 192.168.13.2
+   dest: /var/www/html/test2.local
+   domain: test2.local

@@ -53,144 +53,29 @@
 - name: install mysql
   apt: name=mysql-server state=latest
 
-- name: replace port on 8080 for apache
-  lineinfile:
+- name: make ports.conf in apache
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/ports.j2
     dest: /etc/apache2/ports.conf
-    regexp: '^Listen '
-    insertafter: '^#Listen '
-    line: 'Listen 8080'
 
-- name: copy base configuration for new virtualhost test1.local
-  command: cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/test1.local.conf
-
-- name: --/--/-- test2.local
-  command: cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/test2.local.conf
-
-- name: change test1.local.conf
-  lineinfile:
+- name: make apache virtualhosts configuration
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/apache_siteconf1.j2
     dest: /etc/apache2/sites-available/test1.local.conf
-    regexp: '^<VirtualHost '
-    insertafter: '^#<VirtualHost '
-    line: '<VirtualHost 192.168.13.1:8080>'
-- name: change test1.local.conf
-  lineinfile:
-    dest: /etc/apache2/sites-available/test1.local.conf
-    regexp: '(DocumentRoot /var/www/html)'
-    insertafter: '^DocumentRoot '
-    line: '        DocumentRoot /var/www/html/test1.local'
-- name: change test1.local.conf
-  lineinfile:
-    dest: /etc/apache2/sites-available/test1.local.conf
-    regexp: '(#ServerName www.example.com)'
-    insertafter: '^#ServerName '
-    line: '        ServerName www.test1.local'
 
-- name: change test2.local.conf
-  lineinfile:
+- name: make apache virtualhosts configuration
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/apache_siteconf2.j2
     dest: /etc/apache2/sites-available/test2.local.conf
-    regexp: '^<VirtualHost '
-    insertafter: '^#<VirtualHost '
-    line: '<VirtualHost 192.168.13.2:8080>'
-- name: change test2.local.conf
-  lineinfile:
-    dest: /etc/apache2/sites-available/test2.local.conf
-    regexp: '(DocumentRoot /var/www/html)'
-    insertafter: '^DocumentRoot '
-    line: '        DocumentRoot /var/www/html/test2.local'
-- name: change test2.local.conf
-  lineinfile:
-    dest: /etc/apache2/sites-available/test2.local.conf
-    regexp: '(#ServerName www.example.com)'
-    insertafter: '^#ServerName '
-    line: '        ServerName www.test2.local'
 
 - service:
      name: apache2
      state: restarted
 
-- name: change nginx.conf
-  lineinfile:
+- name: make nginx.conf
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/nginx.j2
     dest: /etc/nginx/nginx.conf
-    regexp: 'user  '
-    insertafter: '^#user  '
-    line: 'user  www-data;'
-- name: change nginx.conf
-  lineinfile:
-    dest: /etc/nginx/nginx.conf
-    regexp: 'worker_processes '
-    insertafter: '^#worker_processes '
-    line: 'worker_processes  2;'
-
-- name: remove old nginx.conf
-  file:
-     dest: /etc/nginx/nginx.conf
-     state: absent
-
-- name: make new nginx.conf
-  file:
-     dest: /etc/nginx/nginx.conf
-     state: touch
-     mode: 0644
-
-- name: change nginx.conf
-  blockinfile:
-    dest: /etc/nginx/nginx.conf
-    content: |
-      user www-data;
-      worker_processes 2;
-
-      error_log /var/log/nginx/error.log warn;
-      pid /var/run/nginx.pid;
-
-      events {
-        worker_connections 1024;
-        use epoll;
-      }
-
-      http {
-
-      upstream apache24 {
-        server 127.0.0.1:8080;
-      }
-
-      include /etc/nginx/mime.types;
-      default_type application/octet-stream;
-
-      log_format main '$remote_addr - $remote_user [$time_local] "$request" '
-                          '$status $body_bytes_sent "$http_referer" '
-                         '"$http_user_agent" "$http_x_forwarded_for"';
-      access_log /var/log/nginx/access.log main;
-
-      client_header_timeout 30;
-      client_body_timeout 30;
-      reset_timedout_connection on;
-      client_max_body_size 32m;
-      client_body_buffer_size 4m;
-
-      sendfile on;
-      tcp_nopush on;
-      tcp_nodelay on;
-      keepalive_timeout 65;
-
-      proxy_buffering on;
-      proxy_connect_timeout 300;
-      proxy_send_timeout 300;
-      proxy_read_timeout 300;
-      proxy_buffer_size 64k;
-      proxy_buffers 8 64k;
-      proxy_busy_buffers_size 64k;
-      proxy_temp_file_write_size 10m;
-
-      gzip on;
-      gzip_disable "msie6";
-      gzip_proxied any;
-      gzip_min_length 1024;
-      gzip_comp_level 4;
-      gzip_types text/plain text/css application/json application/javascript application/x-javascript text/xml application/xml application/xml+rss text/javascript application/atom+xml application/rdf+xml;
-
-      include /etc/nginx/conf.d/*.conf;
-      include /etc/nginx/sites-enabled/*;
-      }
 
 - name: make directory for virtualhosts nginx
   file:
@@ -208,83 +93,19 @@
      state: directory
 
 - name: make apache24.conf
-  file:
-     dest: /etc/nginx/templates/apache24.conf
-     state: touch
-     mode: 0644
-
-- name: change apache24.conf
-  blockinfile:
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/apache24.j2
     dest: /etc/nginx/templates/apache24.conf
-    content: |
-        location / {
-          proxy_pass http://apache24;
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $remote_addr;
-          proxy_connect_timeout 120;
-          proxy_send_timeout 120;
-          proxy_read_timeout 180;
-        }
-        location ~* \.(gif|jpeg|jpg|txt|png|tif|tiff|ico|jng|bmp|doc|pdf|rtf|xls|ppt|rar|rpm|swf|zip|bin|exe|dll|deb|cur)$ {
-          expires 3d;
-        }
-        location ~* \.(css|js)$ {
-          expires 180m;
-        }
-        location ~ /\.ht {
-          deny all;
-        }
 
 - name: make descriprion for test1.local
-  file:
-     dest: /etc/nginx/sites-available/test1.local.conf
-     state: touch
-     mode: 0644
-
-- name: change descriprion for test1.local
-  blockinfile:
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/nginx_site_description1.j2
     dest: /etc/nginx/sites-available/test1.local.conf
-    content: |
-        server {
-          listen 80;
-          server_name test1.local www.test1.local;
-
-          root /var/www/html/test1.local;
-          charset utf-8;
-
-          access_log /var/log/nginx/test1.local-access.log main;
-          error_log /var/log/nginx/test1.local-error.log error;
-
-          index index.html index.htm index.php;
-
-          include /etc/nginx/templates/apache24.conf;
-        }
 
 - name: make descriprion for test2.local
-  file:
-     dest: /etc/nginx/sites-available/test2.local.conf
-     state: touch
-     mode: 0644
-
-- name: change descriprion for test2.local
-  blockinfile:
+  template:
+    src: /root/Projects/vagrant-ansible/roles/deploy_web_server/templates/nginx_site_description2.j2
     dest: /etc/nginx/sites-available/test2.local.conf
-    content: |
-        server {
-          listen 80;
-          server_name test2.local www.test2.local;
-
-          root /var/www/html/test2.local;
-          charset utf-8;
-
-          access_log /var/log/nginx/test2.local-access.log main;
-          error_log /var/log/nginx/test2.local-error.log error;
-
-          index index.html index.htm index.php;
-
-          include /etc/nginx/templates/apache24.conf;
-        }
 
 - name: connect the nginx configuration file test1.local
   file:
@@ -332,23 +153,20 @@
   group:
      name: www-data2
      state: present
+
 - name: make user for isolation hosts
   user:
      name: www-data2
      state: present
-- name: change test1.local.conf for isolation
-  blockinfile:
-     dest: /etc/apache2/sites-available/test1.local.conf
-     content: |
-           <IfModule mpm_itk_module>
-           AssignUserId www-data2 www-data2
-           </IfModule>
+
+
 - name: make host directory
   file:
      dest: /var/www/html/test1.local
      state: directory
      owner: www-data2
      group: www-data2
+
 - name: make host directory
   file:
      dest: /var/www/html/test2.local
